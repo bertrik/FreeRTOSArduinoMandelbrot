@@ -7,15 +7,19 @@
 // slightly odd way as I wanted to try some of the
 // FreeRTOS functions.
 
+#ifdef ESP32
+#include <freertos/event_groups.h>
+#define N_THREADS 6
+#else
 #include <Arduino_FreeRTOS.h>
 #include <event_groups.h>
 #include <semphr.h>
-
 #define N_THREADS 4
+#endif
 
-constexpr float startX = -0.7453, startY = 0.1127;
-float dim = 2;
-float x1, x2, y1, y2;
+constexpr double startX = -0.7453, startY = 0.1127;
+double dim = 2;
+double x1, x2, Y1, y2;
 constexpr uint8_t mit = 255, xres = 80, yres = 24;
 
 SemaphoreHandle_t xSemaphore = NULL;
@@ -49,6 +53,7 @@ void putPixel(const uint8_t c, const uint8_t x, const uint8_t y, const float wx,
 #endif
 
   Serial.print(char(32 + (c % 95)));
+  Serial.flush();
   unlock();
 }
 
@@ -67,7 +72,7 @@ void drawThread(void *pars) {
     xEventGroupClearBits(xEventGroupStart, 1 << p -> bitNr);
 
     for (uint8_t y = p -> yStart; y < p -> yStart + p -> nLines; y++) {
-      float yc = (y2 - y1) / yres * y + y1;
+      float yc = (y2 - Y1) / yres * y + Y1;
 
       for (uint8_t x = 0; x < xres; x++) {
         float xc = (x2 - x1) / xres * x + x1;
@@ -102,7 +107,7 @@ EventBits_t eventWaitBits = 0;
 void setupMandelbrot() {
   x1 = startX - dim;
   x2 = startX + dim;
-  y1 = startY - dim;
+  Y1 = startY - dim;
   y2 = startY + dim;
   dim = (dim * 2.0 / 3.0);
 }
@@ -142,7 +147,11 @@ void setup() {
 
     eventWaitBits |= 1 << i;
 
+#ifdef ESP32
+    xTaskCreate(drawThread, "", 1024, &pars[i], 1, NULL);
+#else
     xTaskCreate(drawThread, "", 200, &pars[i], 1, NULL);
+#endif
   }
 
   setupMandelbrot();
