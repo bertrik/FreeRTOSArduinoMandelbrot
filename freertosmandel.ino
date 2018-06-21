@@ -148,7 +148,7 @@ void setup() {
     eventWaitBits |= 1 << i;
 
 #ifdef ESP32
-    xTaskCreate(drawThread, "", 1024, &pars[i], 1, NULL);
+    xTaskCreatePinnedToCore(drawThread, "", 1024, &pars[i], 1, NULL, i % 2);
 #else
     xTaskCreate(drawThread, "", 200, &pars[i], 1, NULL);
 #endif
